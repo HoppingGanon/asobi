@@ -1,0 +1,148 @@
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ASOBI</title>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/vuetify@3.4.8/dist/vuetify.min.css"
+      rel="stylesheet" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/@mdi/font@5.x/css/materialdesignicons.min.css"
+      rel="stylesheet" />
+  </head>
+  <body>
+    <style>
+      .loading {
+        display: fixed;
+        width: 100vw;
+        height: 100vh;
+        z-index: 10001;
+        background-color: #fff;
+      }
+      .loading-2 {
+        display: none;
+        width: 100vw;
+        height: 100vh;
+        z-index: 10001;
+        background-color: #fff;
+      }
+
+      .loading-inner {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        z-index: 10001;
+        justify-content: center;
+        align-content: center;
+        align-items: center;
+      }
+    </style>
+
+    <div class="loading">
+      <div class="loading-inner">
+        <span>読み込み中...</span>
+      </div>
+    </div>
+
+    <div id="app">
+      <v-calendar
+        :events="events"
+        :start="start"
+        :end="end"
+        @click:event="openEventDialog"></v-calendar>
+      <v-dialog v-model="eventDialog" persistent>
+        <v-card>
+          <v-card-title>予定編集</v-card-title>
+          <v-card-text>
+            <v-text-field v-model="event.title" label="タイトル"></v-text-field>
+            <v-select v-model="event.year" :items="years" label="年"></v-select>
+            <v-select
+              v-model="event.month"
+              :items="months"
+              label="月"></v-select>
+            <v-select v-model="event.day" :items="days" label="日"></v-select>
+            <v-switch v-model="event.allDay" label="終日"></v-switch>
+            <v-textarea v-model="event.comment" label="コメント"></v-textarea>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn color="green darken-1" text @click="saveEvent">保存</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+      <v-btn @click="openNewEventDialog">新規予定作成</v-btn>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/vue@3.4.3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.9/dist/vuetify.min.js"></script>
+
+    <script>
+      // Google Calendar APIの基本URL
+      axios.defaults.baseURL = 'https://www.googleapis.com/calendar/v3'
+
+      // 期間を指定して予定を取得する関数
+      function getEvents(start, end) {
+        return axios.get(`/events?timeMin=${start}&timeMax=${end}`)
+      }
+
+      // 予定の詳細を取得する関数
+      function getEventDetails(eventId) {
+        return axios.get(`/events/${eventId}`)
+      }
+
+      // 予定を編集する関数
+      function updateEvent(eventId, updates) {
+        return axios.patch(`/events/${eventId}`, updates)
+      }
+
+      // 予定を新規作成する関数
+      function addEvent(event) {
+        return axios.post(`/events`, event)
+      }
+    </script>
+
+    <script>
+      const app = Vue.createApp({
+        data() {
+          return {
+            dialog: false,
+            apiKey: '',
+          }
+        },
+        methods: {
+          saveApiKey() {
+            localStorage.setItem('apiKey', this.apiKey)
+            axios.defaults.headers.common[
+              'Authorization'
+            ] = `Bearer ${this.apiKey}`
+            this.dialog = false
+          },
+        },
+        mounted() {
+          const els = document.getElementsByClassName('loading')
+          setTimeout(() => {
+            for (let i = 0; i < els.length; i++) {
+              els[i].classList = ['loading-2']
+            }
+          }, 250)
+          this.apiKey = localStorage.getItem('apiKey') || ''
+          if (this.apiKey) {
+            this.dialog = false
+          } else {
+            this.dialog = true
+            axios.defaults.headers.common[
+              'Authorization'
+            ] = `Bearer ${this.apiKey}`
+          }
+        },
+      })
+
+      const vuetify = Vuetify.createVuetify()
+      app.use(vuetify)
+
+      app.mount('#app')
+    </script>
+  </body>
+</html>
